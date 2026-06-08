@@ -10,6 +10,9 @@ Usage:
 
 $ErrorActionPreference = "Stop"
 
+# Detect if we were piped from web (irm | iex) — no script file, no PSScriptRoot
+$IsPipedFromWeb = (-not $MyInvocation.MyCommand.Path) -and (-not $PSScriptRoot)
+
 $ScriptPath = if ($MyInvocation.MyCommand.Path) {
   $MyInvocation.MyCommand.Path
 } elseif ($PSScriptRoot -and (Test-Path "$PSScriptRoot\install.ps1")) {
@@ -63,6 +66,11 @@ if (-not (Is-QArnessCheckout $RepoRoot)) {
     exit 1
   }
   Clone-QArness @args
+  # Pause if running from web pipe — keep window open after install
+  if (-not $env:CI -and $IsPipedFromWeb -and [Environment]::UserInteractive) {
+    Write-Host ""
+    Read-Host -Prompt "Нажмите Enter для выхода"
+  }
   exit
 }
 
