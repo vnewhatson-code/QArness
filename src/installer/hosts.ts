@@ -1,8 +1,7 @@
-import { existsSync, readFileSync } from "node:fs"
-import { cp, mkdir, readFile, writeFile, rm } from "node:fs/promises"
+import { existsSync } from "node:fs"
+import { mkdir, readFile, writeFile, rm } from "node:fs/promises"
 import { homedir } from "node:os"
-import { join } from "node:path"
-import { existsSync as dirExists } from "node:fs"
+import { join, dirname } from "node:path"
 import { copyDir, copyFile, listItems, commandExists, xdgConfig, REPO_ROOT } from "./utils"
 
 export type SourceMapping = {

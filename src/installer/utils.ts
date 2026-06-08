@@ -1,5 +1,5 @@
-import { existsSync } from "node:fs"
-import { cp, mkdir, readdir, readFile } from "node:fs/promises"
+import { existsSync, statSync } from "node:fs"
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises"
 import { homedir } from "node:os"
 import { join, dirname, resolve } from "node:path"
 
@@ -24,13 +24,22 @@ export const commandExists = (cmd: string): boolean => {
 }
 
 export const copyDir = async (src: string, dest: string): Promise<void> => {
-  await mkdir(dest, { recursive: true })
-  await cp(src, dest, { recursive: true })
+  const srcStat = statSync(src)
+  if (srcStat.isDirectory()) {
+    await mkdir(dest, { recursive: true })
+    const entries = await readdir(src)
+    for (const entry of entries) {
+      await copyDir(join(src, entry), join(dest, entry))
+    }
+  } else {
+    await mkdir(dirname(dest), { recursive: true })
+    await writeFile(dest, await readFile(src))
+  }
 }
 
 export const copyFile = async (src: string, dest: string): Promise<void> => {
   await mkdir(dirname(dest), { recursive: true })
-  await cp(src, dest)
+  await writeFile(dest, await readFile(src))
 }
 
 export const listItems = async (
