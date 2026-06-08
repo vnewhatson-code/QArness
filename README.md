@@ -11,39 +11,6 @@
 - **Инсталлятор** — устанавливает навыки и агенты в AI-ассистенты одной командой
 - **CLI** — управление установкой, обновлениями, прокси, диагностикой
 
-## Структура проекта
-
-```
-QArness/
-├── install.ts              # Главный установщик (TypeScript + Bun)
-├── install.sh              # Bootstrap: клонирует репо и запускает install.ts
-├── uninstall.ts            # Деинсталлятор на основе манифеста
-├── package.json            # Зависимости и скрипты
-├── skills/                 # Навыки для AI-ассистентов
-│   ├── checklist-generator/    # Генерация чек-листов
-│   ├── mindmap-generator/      # Генерация mind map (XMind)
-│   └── form-documentation-skill/  # Документирование форм
-├── agents/                 # Агенты
-│   ├── form-documenter.md      # Агент документирования форм 1С
-│   └── templates/
-├── src/
-│   ├── installer/          # Модули установщика
-│   │   ├── hosts.ts        # Data-driven конфигурация хостов (OpenCode, Claude Code)
-│   │   ├── features.ts     # Опциональные компоненты (xmind-mcp)
-│   │   ├── manifest.ts     # Manifest-based tracking (~/.qarness/manifest.json)
-│   │   ├── utils.ts        # Утилиты
-│   │   └── cli.ts          # Парсинг аргументов
-│   └── cli/                # CLI команды
-│       ├── index.ts        # Точка входа
-│       └── commands/       # status, update, integrate, config, doctor, remove
-├── tests/
-│   ├── unit/               # Unit-тесты (84 шт.)
-│   └── installer.test.ts   # Интеграционные тесты в Docker (18 шт.)
-├── config/                 # Шаблоны конфигураций
-├── docs/plans/             # Планы и чек-листы
-└── docker-compose.test.yml
-```
-
 ## Установка
 
 Требуется **git** и **bash**. Bun (JS-рантайм) установится автоматически.
