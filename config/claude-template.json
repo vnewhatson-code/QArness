@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "xmind": {
+      "command": "npx",
+      "args": ["-y", "xmind-mcp-server"]
+    }
+  }
+}

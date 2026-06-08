@@ -66,42 +66,111 @@ QArness представляет собой коллекцию агентов и
 
 ```
 QArness/
-├── agents/                    # Агенты для выполнения задач
+├── install.sh                # Инсталлятор для Unix (Linux/macOS)
+├── install.ps1               # Инсталлятор для Windows
+├── qarness                   # CLI утилита управления
+├── agents/                   # Агенты для выполнения задач
 │   ├── form-documenter.md    # Агент для документирования форм 1С
 │   └── templates/            # Шаблоны для агентов
-├── skills/                    # Навыки для автоматизации
+├── skills/                   # Навыки для автоматизации
 │   ├── form-documentation-skill/  # Навык проверки и документирования форм
 │   └── mindmap-generator/         # Навык генерации mind map
-│       ├── SKILL.md
-│       └── templates/        # Шаблоны для mind map
+├── config/                   # Конфигурационные файлы
+│   ├── ai-detectors.json     # Правила определения AI-ассистентов
+│   └── *-template.json       # Шаблоны конфигураций
+├── scripts/                  # Вспомогательные скрипты
+│   ├── detect-ai.sh          # Определение AI-ассистентов
+│   ├── integrate-ai.sh       # Интеграция с AI-ассистентами
+│   └── install-deps.sh       # Установка зависимостей
+├── lib/                      # Библиотеки для CLI
+│   ├── common.sh             # Общие функции
+│   ├── proxy-handler.sh      # Работа с прокси
+│   └── config-manager.sh     # Управление конфигурацией
+├── docs/                     # Документация
+│   ├── INSTALL.md            # Руководство по установке
+│   ├── CLI.md                # Документация CLI
+│   └── TROUBLESHOOTING.md    # Решение проблем
 └── README.md                 # Этот файл
 ```
 
-## Установка и настройка
+## Быстрая установка
 
-1. Клонируйте репозиторий:
-   ```bash
-   git clone <url-репозитория>
-   cd QArness
-   ```
+QArness устанавливается одной командой и автоматически интегрируется с вашими AI-ассистентами.
 
-2. Настройте OpenCode для использования агентов и навыков из этого репозитория
+### Linux/macOS
 
-3. Убедитесь, что установлен XMind MCP server для генерации .xmind файлов
+```bash
+curl -fsSL https://raw.githubusercontent.com/vnewhatson-code/QArness/main/install.sh | bash
+```
 
-## Использование с OpenCode
+### Windows (PowerShell)
 
-QArness разработан для использования с OpenCode AI assistant. После настройки вы можете:
+```powershell
+iwr -useb https://raw.githubusercontent.com/vnewhatson-code/QArness/main/install.ps1 | iex
+```
+
+### С корпоративным прокси
+
+**Linux/macOS:**
+```bash
+HTTP_PROXY=http://proxy.company.com:8080 curl -fsSL https://raw.githubusercontent.com/vnewhatson-code/QArness/main/install.sh | bash
+```
+
+**Windows:**
+```powershell
+$env:HTTP_PROXY="http://proxy.company.com:8080"
+iwr -useb https://raw.githubusercontent.com/vnewhatson-code/QArness/main/install.ps1 | iex
+```
+
+### После установки
+
+Проверьте статус:
+```bash
+qarness status
+```
+
+Интегрируйте с AI-ассистентом:
+```bash
+qarness integrate opencode
+qarness integrate claude
+```
+
+📖 **Подробная документация:** [docs/INSTALL.md](docs/INSTALL.md)
+
+## Использование
+
+QArness работает с различными AI-ассистентами (OpenCode, Claude Desktop и др.). После установки используйте навыки и агенты через ваш AI-ассистент:
 
 - Запрашивать создание mind map: "Создай mind map для новой функциональности"
 - Документировать формы: "Задокументируй форму [имя_формы]"
 - Проверять наличие документации: "Проверь какие формы не задокументированы"
 
+### CLI команды
+
+```bash
+qarness update              # Обновить QArness
+qarness status              # Показать статус
+qarness doctor              # Диагностика проблем
+qarness config proxy set    # Настроить прокси
+qarness integrate <ai>      # Интегрировать с AI-ассистентом
+qarness help                # Показать все команды
+```
+
+📖 **Документация CLI:** [docs/CLI.md](docs/CLI.md)
+
 ## Требования
 
-- OpenCode AI assistant
-- Node.js (для утилит проверки)
-- XMind MCP server (для генерации .xmind файлов)
+### Автоматически устанавливаются
+
+- **Node.js** >= 18.0 (для работы утилит и MCP серверов)
+- **npm** (устанавливается с Node.js)
+- **XMind MCP server** (для генерации .xmind файлов)
+
+### Требуют ручной установки
+
+- **Git** >= 2.0
+- **AI-ассистент** (OpenCode, Claude Desktop или др.)
+- **jq** или **Python 3** (для обработки JSON)
 
 ## Преимущества использования QArness
 
@@ -113,15 +182,41 @@ QArness разработан для использования с OpenCode AI as
 
 ## Планы развития
 
-- Добавление генерации автотестов на основе mind map
-- Интеграция с системами управления тестированием
-- Поддержка дополнительных форматов документации
-- Расширенный анализ исходного кода для выявления тестовых сценариев
+- ✅ Универсальный кроссплатформенный инсталлятор
+- ✅ Поддержка корпоративных прокси
+- ✅ CLI для управления и обновлений
+- ✅ Интеграция с OpenCode и Claude Desktop
+- 🔄 Добавление генерации автотестов на основе mind map
+- 🔄 Интеграция с системами управления тестированием
+- 🔄 Поддержка дополнительных форматов документации
+- 🔄 Расширенный анализ исходного кода для выявления тестовых сценариев
+
+## Документация
+
+- 📖 [Руководство по установке](docs/INSTALL.md)
+- 💻 [Документация CLI](docs/CLI.md)
+- 🔧 [Решение проблем](docs/TROUBLESHOOTING.md)
+- 📋 [План разработки инсталлятора](docs/plans/installer-plan.md)
+
+## Обновления
+
+Проверить и установить обновления:
+
+```bash
+qarness update
+```
+
+QArness автоматически проверяет наличие обновлений раз в день.
 
 ## Лицензия
 
 MIT
 
-## Контакты
+## Контакты и поддержка
+
+- 🐛 **Issues:** https://github.com/vnewhatson-code/QArness/issues
+- 📖 **Документация:** [docs/](docs/)
+- 🔄 **Обновления:** `qarness update`
+- 🩺 **Диагностика:** `qarness doctor`
 
 Для вопросов и предложений создавайте issues в репозитории проекта.

@@ -1,0 +1,51 @@
+{
+  "assistants": {
+    "opencode": {
+      "name": "OpenCode",
+      "paths": {
+        "linux": [
+          "~/.config/opencode",
+          "/usr/local/share/opencode"
+        ],
+        "macos": [
+          "~/.config/opencode",
+          "~/Library/Application Support/opencode"
+        ],
+        "windows": [
+          "%APPDATA%\\opencode",
+          "%LOCALAPPDATA%\\opencode"
+        ]
+      },
+      "configFiles": [
+        "opencode.json",
+        "opencode.jsonc"
+      ],
+      "detectCommand": "opencode",
+      "priority": 1
+    },
+    "claude": {
+      "name": "Claude Desktop",
+      "paths": {
+        "linux": [
+          "~/.config/claude"
+        ],
+        "macos": [
+          "~/Library/Application Support/Claude"
+        ],
+        "windows": [
+          "%APPDATA%\\Claude"
+        ]
+      },
+      "configFiles": [
+        "claude_desktop_config.json"
+      ],
+      "detectCommand": null,
+      "priority": 2
+    }
+  },
+  "integration": {
+    "agentsKey": "agents.paths",
+    "skillsKey": "skills.paths",
+    "mcpServersKey": "mcpServers"
+  }
+}

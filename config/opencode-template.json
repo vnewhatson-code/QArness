@@ -1,0 +1,14 @@
+{
+  "agents": {
+    "paths": []
+  },
+  "skills": {
+    "paths": []
+  },
+  "mcpServers": {
+    "xmind": {
+      "command": "npx",
+      "args": ["-y", "xmind-mcp-server"]
+    }
+  }
+}
