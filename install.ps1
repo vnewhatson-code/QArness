@@ -3,6 +3,9 @@
 .SYNOPSIS
 QArness Bootstrap Installer (PowerShell)
 Clones repo if run from web, checks bun, runs install.ts
+
+Usage:
+  irm https://raw.githubusercontent.com/vnewhatson-code/QArness/main/install.ps1 | iex
 #>
 
 $ErrorActionPreference = "Stop"
@@ -17,21 +20,22 @@ $ScriptPath = if ($MyInvocation.MyCommand.Path) {
 
 $RepoRoot = if ($ScriptPath) {
   $dir = Split-Path $ScriptPath -Parent
-  if ($dir) { $dir } else { $null }
+  if ($dir) { [System.IO.Path]::GetFullPath($dir) } else { $null }
 } else {
   $null
 }
 
 function Is-QArnessCheckout {
   param($root)
-  ($root) -and (Test-Path "$root\install.ts") -and (Test-Path "$root\package.json")
+  ($root) -and (Test-Path (Join-Path $root "install.ts")) -and (Test-Path (Join-Path $root "package.json"))
 }
 
 function Clone-QArness {
   $RepoUrl = if ($env:QARNESS_REPO_URL) { $env:QARNESS_REPO_URL } else { "https://github.com/vnewhatson-code/QArness.git" }
   $Ref = if ($env:QARNESS_REF) { $env:QARNESS_REF } else { "main" }
 
-  $TempDir = Join-Path $env:TEMP "qarness-install-$([System.Guid]::NewGuid().ToString('N').Substring(0, 8))"
+  $TempRoot = [System.IO.Path]::GetTempPath()
+  $TempDir = Join-Path $TempRoot "qarness-install-$([System.Guid]::NewGuid().ToString('N').Substring(0, 8))"
   $CloneDir = Join-Path $TempDir "qarness"
 
   try {
@@ -42,11 +46,13 @@ function Clone-QArness {
     }
 
     Push-Location $CloneDir
-    & "$CloneDir\install.ps1" @args
+    & (Join-Path $CloneDir "install.ps1") @args
     Pop-Location
   }
   finally {
-    Remove-Item -Recurse -Force $TempDir -ErrorAction SilentlyContinue
+    if (Test-Path $TempDir) {
+      Remove-Item -Recurse -Force $TempDir -ErrorAction SilentlyContinue
+    }
   }
 }
 
@@ -57,7 +63,7 @@ if (-not (Is-QArnessCheckout $RepoRoot)) {
     exit 1
   }
   Clone-QArness @args
-  exit $LASTEXITCODE
+  exit
 }
 
 Set-Location $RepoRoot
@@ -66,7 +72,8 @@ Set-Location $RepoRoot
 if (-not (Get-Command bun -ErrorAction SilentlyContinue)) {
   Write-Host "Bun не найден. Установка..."
   irm bun.sh/install.ps1 | iex
-  $env:PATH = "$env:USERPROFILE\.bun\bin;$env:PATH"
+  $BunBin = Join-Path ([System.Environment]::GetFolderPath('UserProfile')) ".bun\bin"
+  $env:PATH = "$BunBin;$env:PATH"
 }
 
 # Install deps and run installer
