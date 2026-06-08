@@ -23,9 +23,8 @@ curl -fsSL https://raw.githubusercontent.com/vnewhatson-code/QArness/main/instal
 
 ### Windows
 
-```bash
-# Через Git Bash (рекомендуется)
-curl -fsSL https://raw.githubusercontent.com/vnewhatson-code/QArness/main/install.sh | bash
+```powershell
+irm https://raw.githubusercontent.com/vnewhatson-code/QArness/main/install.ps1 | iex
 ```
 
 Инсталлятор обнаружит установленные AI-ассистенты и предложит выбор через интерактивное меню.
