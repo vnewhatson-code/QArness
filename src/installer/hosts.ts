@@ -42,21 +42,27 @@ export const HOSTS: HostConfig[] = [
           continue
         }
 
-        // Add agents paths
+        // Clean old QArness paths (may be stale from temp-dir installs)
         if (!config.agents) config.agents = {}
-        if (!(config.agents as Record<string, unknown>).paths)
+        if (!Array.isArray((config.agents as Record<string, unknown>).paths))
           (config.agents as Record<string, unknown>).paths = []
-        const agentsPaths = (config.agents as Record<string, unknown>).paths as string[]
+        const agentsPaths: string[] = ((config.agents as Record<string, unknown>).paths as unknown[]).filter(
+          (p: unknown) => typeof p === "string" && !(p as string).includes("QArness"),
+        ) as string[]
         if (!agentsPaths.includes(join(REPO_ROOT, "agents")))
           agentsPaths.push(join(REPO_ROOT, "agents"))
+        ;(config.agents as Record<string, unknown>).paths = agentsPaths
 
         // Add skills paths
         if (!config.skills) config.skills = {}
-        if (!(config.skills as Record<string, unknown>).paths)
+        if (!Array.isArray((config.skills as Record<string, unknown>).paths))
           (config.skills as Record<string, unknown>).paths = []
-        const skillsPaths = (config.skills as Record<string, unknown>).paths as string[]
+        const skillsPaths: string[] = ((config.skills as Record<string, unknown>).paths as unknown[]).filter(
+          (p: unknown) => typeof p === "string" && !(p as string).includes("QArness"),
+        ) as string[]
         if (!skillsPaths.includes(join(REPO_ROOT, "skills")))
           skillsPaths.push(join(REPO_ROOT, "skills"))
+        ;(config.skills as Record<string, unknown>).paths = skillsPaths
 
         // Add MCP servers
         if (!config.mcpServers) config.mcpServers = {}
