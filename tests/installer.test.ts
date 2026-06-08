@@ -226,7 +226,7 @@ describe("Installer - Ubuntu", () => {
       expect(manifest.hosts.opencode.files).toBeDefined()
     })
 
-    it("opencode.json is modified with agents/skills paths and mcpServers", () => {
+    it("opencode manifest has skills files installed", () => {
       if (!containerReady) { console.log("Skipping: container not ready"); return }
 
       // opencode.json won't exist unless we create it first

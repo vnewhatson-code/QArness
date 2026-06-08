@@ -64,11 +64,12 @@ export const HOSTS: HostConfig[] = [
           skillsPaths.push(join(REPO_ROOT, "skills"))
         ;(config.skills as Record<string, unknown>).paths = skillsPaths
 
-        // Add MCP servers
-        if (!config.mcpServers) config.mcpServers = {}
-        ;(config.mcpServers as Record<string, unknown>).xmind = {
-          command: "npx",
-          args: ["-y", "xmind-mcp-server"],
+        // Add MCP servers (OpenCode format: mcp.<name>.type, mcp.<name>.command[])
+        if (!config.mcp) config.mcp = {}
+        ;(config.mcp as Record<string, unknown>).xmind = {
+          type: "local",
+          command: ["npx", "-y", "xmind-generator-mcp"],
+          enabled: true,
         }
 
         await writeFile(configPath, JSON.stringify(config, null, 2) + "\n", "utf8")
@@ -93,8 +94,8 @@ export const HOSTS: HostConfig[] = [
               (p: string) => !p.includes("QArness"),
             )
           }
-          if (config.mcpServers?.xmind) {
-            delete config.mcpServers.xmind
+          if (config.mcp?.xmind) {
+            delete config.mcp.xmind
           }
           await writeFile(configPath, JSON.stringify(config, null, 2) + "\n", "utf8")
         } catch {
@@ -127,7 +128,7 @@ export const HOSTS: HostConfig[] = [
       if (!settings.mcpServers) settings.mcpServers = {}
       ;(settings.mcpServers as Record<string, unknown>).xmind = {
         command: "npx",
-        args: ["-y", "xmind-mcp-server"],
+        args: ["-y", "xmind-generator-mcp"],
       }
 
       await mkdir(dirname(settingsPath), { recursive: true })

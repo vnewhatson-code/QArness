@@ -13,12 +13,13 @@ export const FEATURES: FeatureConfig[] = [
   {
     id: "xmind-mcp",
     name: "XMind MCP Server",
-    hint: "Mindmap generation via XMind",
+    hint: "Mindmap generation via XMind (BangyiZhang/xmind-generator-mcp)",
     install: async () => {
-      if (!commandExists("npm")) {
-        return "skipped (npm not found)"
+      if (!commandExists("npx")) {
+        return "skipped (npx not found)"
       }
-      const result = Bun.spawnSync(["npm", "install", "-g", "xmind-mcp-server"], {
+      // npx will auto-install on first run; pre-install for faster startup
+      const result = Bun.spawnSync(["npm", "install", "-g", "xmind-generator-mcp"], {
         stdout: "pipe",
         stderr: "pipe",
       })
@@ -29,7 +30,7 @@ export const FEATURES: FeatureConfig[] = [
     },
     uninstall: async () => {
       if (!commandExists("npm")) return
-      Bun.spawnSync(["npm", "uninstall", "-g", "xmind-mcp-server"], {
+      Bun.spawnSync(["npm", "uninstall", "-g", "xmind-generator-mcp"], {
         stdout: "pipe",
         stderr: "pipe",
       })

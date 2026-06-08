@@ -68,13 +68,16 @@ describe("Hosts", () => {
       return JSON.parse(readFileSync(configPath, "utf8"))
     }
 
-    it("adds agents.paths and skills.paths and mcpServers", async () => {
+    it("adds agents.paths, skills.paths and mcp server (OpenCode format)", async () => {
       const result = await runPostInstall({})
       const agents: string[] = result.agents.paths
       const skills: string[] = result.skills.paths
       expect(agents.some((p) => p.includes(`QArness${sep}agents`))).toBe(true)
       expect(skills.some((p) => p.includes(`QArness${sep}skills`))).toBe(true)
-      expect(result.mcpServers.xmind).toBeDefined()
+      expect(result.mcp.xmind).toBeDefined()
+      expect(result.mcp.xmind.type).toBe("local")
+      expect(result.mcp.xmind.command).toEqual(["npx", "-y", "xmind-generator-mcp"])
+      expect(result.mcp.xmind.enabled).toBe(true)
     })
 
     it("does not duplicate QArness paths if already present", async () => {
@@ -101,9 +104,10 @@ describe("Hosts", () => {
     })
 
     it("overwrites xmind mcp server if already present", async () => {
-      await runPostInstall({ mcpServers: { xmind: { command: "old", args: [] } } })
-      const result = await runPostInstall({ mcpServers: { xmind: { command: "old", args: [] } } })
-      expect(result.mcpServers.xmind.command).toBe("npx")
+      await runPostInstall({ mcp: { xmind: { type: "local", command: ["old"], enabled: false } } })
+      const result = await runPostInstall({ mcp: { xmind: { type: "local", command: ["old"], enabled: false } } })
+      expect(result.mcp.xmind.command).toEqual(["npx", "-y", "xmind-generator-mcp"])
+      expect(result.mcp.xmind.enabled).toBe(true)
     })
   })
 
@@ -162,11 +166,11 @@ describe("Hosts", () => {
       writeFileSync(configPath, JSON.stringify({
         agents: { paths: ["/custom/agents"] },
         skills: { paths: ["/custom/skills"] },
-        mcpServers: { xmind: { command: "npx" } },
+        mcp: { xmind: { type: "local", command: ["npx", "-y", "xmind-generator-mcp"] } },
       }))
       await opencode.postUninstall!(tmp)
       const result = JSON.parse(readFileSync(configPath, "utf8"))
-      expect(result.mcpServers.xmind).toBeUndefined()
+      expect(result.mcp.xmind).toBeUndefined()
       rmSync(tmp, { recursive: true, force: true })
     })
 
