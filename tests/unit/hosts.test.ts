@@ -98,9 +98,7 @@ describe("Hosts", () => {
     })
 
     it("does not add new agents.paths or skills.paths", async () => {
-      // Empty config with no paths defined — paths should NOT be added
       const result = await runPostInstall({})
-      // agents/skills should not exist or should be empty objects
       if (result.agents) {
         expect(result.agents.paths).toBeUndefined()
       }
@@ -122,42 +120,55 @@ describe("Hosts", () => {
     })
   })
 
-  // 5.2 Claude Code (settings.json)
+  // 5.2 Claude Code (~/.claude.json — NOT settings.json)
   describe("postInstall — Claude Code", () => {
-    let tmp: string
-    let claudeDir: string
+    let fakeHome: string
+    let prevHome: string | undefined
     let claude: HostConfig
 
     beforeAll(() => {
       claude = HOSTS.find((h) => h.id === "claude")!
-      tmp = mkdtempSync(join(tmpdir(), "qarness-claude-"))
-      claudeDir = join(tmp, ".claude")
-      mkdirSync(claudeDir, { recursive: true })
+      fakeHome = mkdtempSync(join(tmpdir(), "qarness-claude-home-"))
+      const isWin = process.platform === "win32"
+      prevHome = isWin ? process.env.USERPROFILE : process.env.HOME
+      if (isWin) process.env.USERPROFILE = fakeHome
+      else process.env.HOME = fakeHome
     })
 
     afterAll(() => {
-      rmSync(tmp, { recursive: true, force: true })
+      const isWin = process.platform === "win32"
+      if (isWin) process.env.USERPROFILE = prevHome
+      else process.env.HOME = prevHome
+      rmSync(fakeHome, { recursive: true, force: true })
     })
 
-    it("creates settings.json if it does not exist", async () => {
-      const settingsPath = join(claudeDir, "settings.json")
-      try { rmSync(settingsPath) } catch {}
-      await claude.postInstall!(claudeDir)
-      expect(existsSync(settingsPath)).toBe(true)
+    it("creates ~/.claude.json with mcpServers.xmind", async () => {
+      const configPath = join(fakeHome, ".claude.json")
+      try { rmSync(configPath) } catch {}
+
+      await claude.postInstall!(fakeHome)
+      expect(existsSync(configPath)).toBe(true)
+
+      const config = JSON.parse(readFileSync(configPath, "utf8"))
+      expect(config.mcpServers.xmind).toBeDefined()
+      expect(config.mcpServers.xmind.type).toBe("stdio")
+      expect(config.mcpServers.xmind.command).toBe("npx")
+      expect(config.mcpServers.xmind.args).toEqual(["-y", "xmind-generator-mcp"])
     })
 
-    it("adds mcpServers.xmind to existing settings", async () => {
-      const settingsPath = join(claudeDir, "settings.json")
-      writeFileSync(settingsPath, JSON.stringify({ existing: true }))
-      await claude.postInstall!(claudeDir)
-      const settings = JSON.parse(readFileSync(settingsPath, "utf8"))
-      expect(settings.existing).toBe(true)
-      expect(settings.mcpServers.xmind.command).toBe("npx")
+    it("merges with existing ~/.claude.json", async () => {
+      const configPath = join(fakeHome, ".claude.json")
+      writeFileSync(configPath, JSON.stringify({ otherSetting: true }))
+
+      await claude.postInstall!(fakeHome)
+      const config = JSON.parse(readFileSync(configPath, "utf8"))
+      expect(config.otherSetting).toBe(true)
+      expect(config.mcpServers.xmind).toBeDefined()
     })
 
-    it("handles invalid settings.json gracefully", async () => {
-      writeFileSync(join(claudeDir, "settings.json"), "{{{ bad json }}}")
-      await claude.postInstall!(claudeDir)
+    it("handles invalid ~/.claude.json gracefully", async () => {
+      writeFileSync(join(fakeHome, ".claude.json"), "{{{ bad json }}}")
+      await claude.postInstall!(fakeHome)
     })
   })
 
@@ -185,21 +196,31 @@ describe("Hosts", () => {
       rmSync(tmp, { recursive: true, force: true })
     })
 
-    it("claude postUninstall removes xmind, keeps others", async () => {
-      const tmp = mkdtempSync(join(tmpdir(), "qarness-clun-"))
-      const configPath = join(tmp, "settings.json")
+    it("claude postUninstall removes xmind from ~/.claude.json", async () => {
+      const fakeHome = mkdtempSync(join(tmpdir(), "qarness-claude-un-"))
+      const configPath = join(fakeHome, ".claude.json")
       writeFileSync(configPath, JSON.stringify({
         otherSetting: true,
-        mcpServers: { xmind: {}, otherServer: {} },
+        mcpServers: { xmind: { type: "stdio", command: "npx" }, otherServer: {} },
       }))
-      await claude.postUninstall!(tmp)
+
+      // Redirect homedir
+      const isWin = process.platform === "win32"
+      const prevHome = isWin ? process.env.USERPROFILE : process.env.HOME
+      if (isWin) process.env.USERPROFILE = fakeHome
+      else process.env.HOME = fakeHome
+
+      await claude.postUninstall!(fakeHome)
       const result = JSON.parse(readFileSync(configPath, "utf8"))
       expect(result.mcpServers.xmind).toBeUndefined()
       expect(result.mcpServers.otherServer).toBeDefined()
-      rmSync(tmp, { recursive: true, force: true })
+
+      if (isWin) process.env.USERPROFILE = prevHome
+      else process.env.HOME = prevHome
+      rmSync(fakeHome, { recursive: true, force: true })
     })
 
-    it("does not throw when config does not exist", async () => {
+    it("postUninstall does not throw when config does not exist", async () => {
       const tmp = mkdtempSync(join(tmpdir(), "qarness-noconfig-"))
       await opencode.postUninstall!(tmp)
       rmSync(tmp, { recursive: true, force: true })
@@ -300,9 +321,6 @@ describe("Hosts", () => {
         threw = true
       }
       expect(threw).toBe(true)
-
-      // After rollback, copied data directory should be removed
-      // (the enclosing dir created by mkdir is not tracked in createdPaths)
       expect(existsSync(join(destDir, srcName, "data"))).toBe(false)
 
       rmSync(tmp, { recursive: true, force: true })

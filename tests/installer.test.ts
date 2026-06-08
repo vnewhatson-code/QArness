@@ -161,14 +161,15 @@ describe("Installer - Ubuntu", () => {
       expect(manifest.hosts.claude.files).toBeDefined()
     })
 
-    it("settings.json is created in ~/.claude with mcpServers.xmind", () => {
+    it("~/.claude.json is created with mcpServers.xmind", () => {
       if (!containerReady) { console.log("Skipping: container not ready"); return }
 
-      const { exitCode, output } = execInContainer("cat ~/.claude/settings.json")
+      const { exitCode, output } = execInContainer("cat ~/.claude.json")
       expect(exitCode).toBe(0)
-      const settings = JSON.parse(output.trim())
-      expect(settings.mcpServers.xmind).toBeDefined()
-      expect(settings.mcpServers.xmind.command).toBe("npx")
+      const config = JSON.parse(output.trim())
+      expect(config.mcpServers.xmind).toBeDefined()
+      expect(config.mcpServers.xmind.type).toBe("stdio")
+      expect(config.mcpServers.xmind.command).toBe("npx")
     })
 
     it("uninstall removes files and manifest", () => {

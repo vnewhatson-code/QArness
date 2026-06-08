@@ -104,37 +104,39 @@ export const HOSTS: HostConfig[] = [
     sources: {
       skills: { from: "skills" },
     },
-    postInstall: async (targetDir) => {
-      // Claude Code uses settings.json or config.json
-      const settingsPath = join(targetDir, "settings.json")
-      let settings: Record<string, unknown> = {}
-      if (existsSync(settingsPath)) {
+    postInstall: async (_targetDir) => {
+      // Claude Code reads MCP servers from ~/.claude.json (NOT settings.json)
+      const configPath = join(homedir(), ".claude.json")
+      let config: Record<string, unknown> = {}
+      if (existsSync(configPath)) {
         try {
-          settings = JSON.parse(await readFile(settingsPath, "utf8"))
+          config = JSON.parse(await readFile(configPath, "utf8"))
         } catch {
           // start fresh
         }
       }
 
-      // Add MCP servers
-      if (!settings.mcpServers) settings.mcpServers = {}
-      ;(settings.mcpServers as Record<string, unknown>).xmind = {
+      if (!config.mcpServers) config.mcpServers = {}
+      ;(config.mcpServers as Record<string, unknown>).xmind = {
+        type: "stdio",
         command: "npx",
         args: ["-y", "xmind-generator-mcp"],
       }
 
-      await mkdir(dirname(settingsPath), { recursive: true })
-      await writeFile(settingsPath, JSON.stringify(settings, null, 2) + "\n", "utf8")
+      await writeFile(configPath, JSON.stringify(config, null, 2) + "\n", "utf8")
     },
-    postUninstall: async (targetDir) => {
-      const settingsPath = join(targetDir, "settings.json")
-      if (!existsSync(settingsPath)) return
+    postUninstall: async (_targetDir) => {
+      const configPath = join(homedir(), ".claude.json")
+      if (!existsSync(configPath)) return
       try {
-        const settings = JSON.parse(await readFile(settingsPath, "utf8"))
-        if (settings.mcpServers?.xmind) {
-          delete settings.mcpServers.xmind
+        const config = JSON.parse(await readFile(configPath, "utf8"))
+        if (config.mcpServers?.xmind) {
+          delete config.mcpServers.xmind
+          if (Object.keys(config.mcpServers).length === 0) {
+            delete config.mcpServers
+          }
+          await writeFile(configPath, JSON.stringify(config, null, 2) + "\n", "utf8")
         }
-        await writeFile(settingsPath, JSON.stringify(settings, null, 2) + "\n", "utf8")
       } catch {
         // skip
       }
