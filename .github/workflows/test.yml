@@ -9,8 +9,12 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - name: Install deps
         run: bun install
-      - name: Run installer tests
+      - name: Run unit tests
+        run: bun test tests/unit/
+      - name: Run integration tests (Docker)
         run: bun test tests/installer.test.ts
+      - name: Validate install.sh syntax
+        run: bash -n install.sh
 
   windows:
     runs-on: windows-latest
@@ -19,5 +23,9 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - name: Install deps
         run: bun install
+      - name: Run unit tests
+        run: bun test tests/unit/
       - name: Verify TypeScript compiles
         run: bun build --no-bundle install.ts
+      - name: Validate install.ps1 syntax
+        run: powershell -NoProfile -Command "& { $t = $null; $e = $null; [System.Management.Automation.Language.Parser]::ParseFile('.\install.ps1', [ref]$t, [ref]$e); if ($e.Count) { $e | ForEach-Object { Write-Error $_ }; exit 1 } }"
