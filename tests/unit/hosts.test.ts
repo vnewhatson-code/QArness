@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test"
 import { mkdtempSync, existsSync, readFileSync, writeFileSync, mkdirSync, rmSync } from "node:fs"
-import { join, sep } from "node:path"
+import { join } from "node:path"
 import { tmpdir } from "node:os"
 import { HOSTS, installHost, uninstallHost, type HostConfig } from "../../src/installer/hosts"
 import { REPO_ROOT } from "../../src/installer/utils"
@@ -40,7 +40,7 @@ describe("Hosts", () => {
     })
   })
 
-  // 5.1 Post-install модификация конфигов — OpenCode
+  // 5.1 Post-install — OpenCode (cleanup + MCP only, no paths added)
   describe("postInstall — OpenCode", () => {
     let tmp: string
     let opencodeDir: string
@@ -68,27 +68,45 @@ describe("Hosts", () => {
       return JSON.parse(readFileSync(configPath, "utf8"))
     }
 
-    it("adds agents.paths, skills.paths and mcp server (OpenCode format)", async () => {
+    it("adds MCP server in OpenCode format", async () => {
       const result = await runPostInstall({})
-      const agents: string[] = result.agents.paths
-      const skills: string[] = result.skills.paths
-      expect(agents.some((p) => p.includes(`QArness${sep}agents`))).toBe(true)
-      expect(skills.some((p) => p.includes(`QArness${sep}skills`))).toBe(true)
       expect(result.mcp.xmind).toBeDefined()
       expect(result.mcp.xmind.type).toBe("local")
       expect(result.mcp.xmind.command).toEqual(["npx", "-y", "xmind-generator-mcp"])
       expect(result.mcp.xmind.enabled).toBe(true)
     })
 
-    it("does not duplicate QArness paths if already present", async () => {
+    it("removes stale QArness paths from agents.paths", async () => {
       const result = await runPostInstall({
-        agents: { paths: ["/custom/agents"] },
-        skills: { paths: ["/custom/skills"] },
+        agents: { paths: ["/custom/agents", "/path/QArness/old-agents"] },
+        skills: { paths: ["/custom/skills", "/path/QArness/old-skills"] },
       })
       const agents: string[] = result.agents.paths
       const skills: string[] = result.skills.paths
-      expect(agents.filter((p: string) => p.includes("QArness") && p.includes("agents")).length).toBe(1)
-      expect(skills.filter((p: string) => p.includes("QArness") && p.includes("skills")).length).toBe(1)
+      expect(agents).toContain("/custom/agents")
+      expect(agents).not.toContain("/path/QArness/old-agents")
+      expect(skills).toContain("/custom/skills")
+      expect(skills).not.toContain("/path/QArness/old-skills")
+    })
+
+    it("preserves non-QArness paths untouched", async () => {
+      const result = await runPostInstall({
+        agents: { paths: ["/other/path"] },
+      })
+      expect(result.agents.paths).toContain("/other/path")
+      expect(result.agents.paths.length).toBe(1)
+    })
+
+    it("does not add new agents.paths or skills.paths", async () => {
+      // Empty config with no paths defined — paths should NOT be added
+      const result = await runPostInstall({})
+      // agents/skills should not exist or should be empty objects
+      if (result.agents) {
+        expect(result.agents.paths).toBeUndefined()
+      }
+      if (result.skills) {
+        expect(result.skills.paths).toBeUndefined()
+      }
     })
 
     it("skips when config file does not exist (no error)", async () => {
@@ -101,13 +119,6 @@ describe("Hosts", () => {
       const configPath = join(opencodeDir, "opencode.json")
       writeFileSync(configPath, "not valid {{ json")
       await opencode.postInstall!(opencodeDir)
-    })
-
-    it("overwrites xmind mcp server if already present", async () => {
-      await runPostInstall({ mcp: { xmind: { type: "local", command: ["old"], enabled: false } } })
-      const result = await runPostInstall({ mcp: { xmind: { type: "local", command: ["old"], enabled: false } } })
-      expect(result.mcp.xmind.command).toEqual(["npx", "-y", "xmind-generator-mcp"])
-      expect(result.mcp.xmind.enabled).toBe(true)
     })
   })
 

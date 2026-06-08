@@ -30,6 +30,8 @@ export const HOSTS: HostConfig[] = [
       skills: { from: "skills" },
     },
     postInstall: async (targetDir) => {
+      // Skills are copied to targetDir/skills/ by installHost — OpenCode auto-discovers them.
+      // Only clean stale QArness path references and add MCP server if config exists.
       const configFiles = ["opencode.json", "opencode.jsonc"]
       for (const f of configFiles) {
         const configPath = join(targetDir, f)
@@ -42,29 +44,19 @@ export const HOSTS: HostConfig[] = [
           continue
         }
 
-        // Clean old QArness paths (may be stale from temp-dir installs)
-        if (!config.agents) config.agents = {}
-        if (!Array.isArray((config.agents as Record<string, unknown>).paths))
-          (config.agents as Record<string, unknown>).paths = []
-        const agentsPaths: string[] = ((config.agents as Record<string, unknown>).paths as unknown[]).filter(
-          (p: unknown) => typeof p === "string" && !(p as string).includes("QArness"),
-        ) as string[]
-        if (!agentsPaths.includes(join(REPO_ROOT, "agents")))
-          agentsPaths.push(join(REPO_ROOT, "agents"))
-        ;(config.agents as Record<string, unknown>).paths = agentsPaths
+        // Clean stale QArness path references from previous installs
+        if (config.agents?.paths) {
+          ;(config.agents as Record<string, unknown>).paths = (
+            (config.agents as Record<string, unknown>).paths as unknown[]
+          ).filter((p: unknown) => typeof p === "string" && !(p as string).includes("QArness"))
+        }
+        if (config.skills?.paths) {
+          ;(config.skills as Record<string, unknown>).paths = (
+            (config.skills as Record<string, unknown>).paths as unknown[]
+          ).filter((p: unknown) => typeof p === "string" && !(p as string).includes("QArness"))
+        }
 
-        // Add skills paths
-        if (!config.skills) config.skills = {}
-        if (!Array.isArray((config.skills as Record<string, unknown>).paths))
-          (config.skills as Record<string, unknown>).paths = []
-        const skillsPaths: string[] = ((config.skills as Record<string, unknown>).paths as unknown[]).filter(
-          (p: unknown) => typeof p === "string" && !(p as string).includes("QArness"),
-        ) as string[]
-        if (!skillsPaths.includes(join(REPO_ROOT, "skills")))
-          skillsPaths.push(join(REPO_ROOT, "skills"))
-        ;(config.skills as Record<string, unknown>).paths = skillsPaths
-
-        // Add MCP servers (OpenCode format: mcp.<name>.type, mcp.<name>.command[])
+        // Add MCP server (OpenCode format)
         if (!config.mcp) config.mcp = {}
         ;(config.mcp as Record<string, unknown>).xmind = {
           type: "local",
