@@ -33,7 +33,7 @@ function Is-QArnessCheckout {
   ($root) -and (Test-Path (Join-Path $root "install.ts")) -and (Test-Path (Join-Path $root "package.json"))
 }
 
-function Clone-QArness {
+function Invoke-CloneAndInstall {
   $RepoUrl = if ($env:QARNESS_REPO_URL) { $env:QARNESS_REPO_URL } else { "https://github.com/vnewhatson-code/QArness.git" }
   $Ref = if ($env:QARNESS_REF) { $env:QARNESS_REF } else { "main" }
 
@@ -44,11 +44,11 @@ function Clone-QArness {
   try {
     git clone --quiet --depth 1 --branch $Ref $RepoUrl $CloneDir 2>$null
     if ($LASTEXITCODE -ne 0) {
-      Write-Error "Ошибка клонирования QArness"
-      exit 1
+      throw "Ошибка клонирования QArness"
     }
 
     Push-Location $CloneDir
+    $global:LASTEXITCODE = 0
     & (Join-Path $CloneDir "install.ps1") @args
     Pop-Location
   }
@@ -59,33 +59,32 @@ function Clone-QArness {
   }
 }
 
-# If not run from checkout, clone and delegate
+function Invoke-InstallFromCheckout {
+  param($root)
+
+  Set-Location $root
+
+  # Check/install bun
+  if (-not (Get-Command bun -ErrorAction SilentlyContinue)) {
+    Write-Host "Bun не найден. Установка..."
+    irm bun.sh/install.ps1 | iex
+    $BunBin = Join-Path ([System.Environment]::GetFolderPath('UserProfile')) ".bun\bin"
+    $env:PATH = "$BunBin;$env:PATH"
+  }
+
+  # Install deps and run installer
+  bun install --silent 2>$null
+  bun run install.ts @args
+}
+
+# --- Main ---
+
 if (-not (Is-QArnessCheckout $RepoRoot)) {
   if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-    Write-Error "git необходим для установки QArness"
-    exit 1
+    throw "git необходим для установки QArness"
   }
-  Clone-QArness @args
-  # Pause if running from web pipe — keep window open after install
-  if (-not $env:CI -and $IsPipedFromWeb -and [Environment]::UserInteractive) {
-    Write-Host ""
-    Read-Host -Prompt "Нажмите Enter для выхода"
-  }
-  exit
+  Invoke-CloneAndInstall @args
+  return
 }
 
-Set-Location $RepoRoot
-
-# Check/install bun
-if (-not (Get-Command bun -ErrorAction SilentlyContinue)) {
-  Write-Host "Bun не найден. Установка..."
-  irm bun.sh/install.ps1 | iex
-  $BunBin = Join-Path ([System.Environment]::GetFolderPath('UserProfile')) ".bun\bin"
-  $env:PATH = "$BunBin;$env:PATH"
-}
-
-# Install deps and run installer
-bun install --silent 2>$null
-if ($LASTEXITCODE -ne 0) { $null }
-bun run install.ts @args
-exit $LASTEXITCODE
+Invoke-InstallFromCheckout $RepoRoot
