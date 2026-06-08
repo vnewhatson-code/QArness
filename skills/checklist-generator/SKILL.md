@@ -1,95 +1,112 @@
 ---
 name: checklist-generator
-description: Generates testing checklists from feature information. The skill supports three modes - 1) with analytics file and task number, 2) with analytics file only, 3) with task number only. When task number is provided, searches for related git commits and analyzes changes. Creates CHECKLIST.md file in docs/QA/[feature_name]/ directory.
+description: Generates QA checklists in docs/QA using three modes: (1) task + relevant analytics, (2) analytics only, (3) task only. For task-based requests, inbox lookup by task id is mandatory before mode selection.
 ---
 
-# Checklist Generator for Testing
+# Checklist Generator (Lite)
 
-This skill generates QA checklists in `docs/QA` using source evidence from analytics files and/or git commits.
+All instructions are in English.
+Final checklist must be written in Russian only.
 
-## Non-negotiable Rules (MUST)
+This skill generates QA checklists in `docs/QA` using evidence from:
+- `docs/QA/__workspace_inbox__/` (analytics)
+- git commits
+- `docs/Speciality/SPECIALITY.md` (optional additional evidence)
 
-1. Follow one of three modes only:
-   - Mode 1: task number + analytics file
-   - Mode 2: analytics file only
-   - Mode 3: task number only
-2. If task number is provided, search commits first.
-3. STOP and report failure if no evidence (commits or relevant analytics) is found. Do not invent details.
-4. Use evidence from commits and/or analytics ONLY if they are explicitly relevant to the task ID.
-5. Output checklist content only in Russian.
-6. Write checklist items as noun phrases, not imperative verbs.
-7. Create or update only `docs/QA/[feature_name]/CHECKLIST.md`.
-8. Include only sections that are explicitly supported by evidence.
-9. Before EVERY generation, check `docs/Speciality/`.
-10. If `docs/Speciality/SPECIALITY.md` exists, use it as an additional evidence source.
-11. In `docs/Speciality/`, only one markdown file is allowed: `SPECIALITY.md`.
+## Input Modes (exactly 3)
 
-## Prohibited (MUST NOT)
+1. **Mode 1: task + analytics**
+   - task id exists in request
+   - relevant analytics file is found (by task-id match or context-title fallback)
 
-1. Do not generate a generic checklist unrelated to task evidence.
-2. Do not skip commit search when task number is present.
-3. Do not use random files from `docs/QA/__workspace_inbox__/` if they don't match the task ID or its numeric part.
-4. Do not phrase checks as action verbs:
-   - Wrong: "Проверить ...", "Убедиться ...", "Протестировать ..."
-   - Correct: "Создание ...", "Наличие ...", "Сообщение ..."
-5. Do not add a separate regression section by default.
-6. Do not include code internals (function names, technical implementation details) in checklist items.
-7. Do not add generic non-functional checks unless such requirements are explicitly present in commits/analytics.
-8. Do not use generic vague terms like "компоненты", "система", "функционал", "корректная работа" without specific context found in evidence.
-9. Do not read other `.md` files from `docs/Speciality/` if they are not `SPECIALITY.md`.
+2. **Mode 2: analytics only**
+   - no task id in request
+   - analytics file exists
 
-## Input Modes
+3. **Mode 3: task only**
+   - task id exists in request
+   - no relevant analytics file found
 
-Mode 1 (task + analytics):
-- task number is provided by user
-- analytics file exists in `docs/QA/__workspace_inbox__/`
-- user explicitly asked to use analytics/inbox file OR analytics is explicitly linked to this task (task id mention)
+If neither task id nor analytics exists, ask for missing input.
 
-Mode 2 (analytics only):
-- no task number
-- analytics file exists in `docs/QA/__workspace_inbox__/`
+## Deterministic Mode Selector
 
-Mode 3 (task only):
-- task number is provided
-- no relevant analytics file
+Apply exactly:
 
-If neither task nor analytics exists, return a short request for missing data.
+```text
+IF task_id exists:
+  search relevant analytics in inbox
+  IF found -> Mode 1
+  ELSE -> Mode 3
+ELSE:
+  IF any analytics exists -> Mode 2
+  ELSE -> ask for missing input
+```
 
-## Deterministic Workflow
+For task-based requests, inbox analytics lookup is mandatory before mode selection.
+Commit search is forbidden until inbox lookup is completed.
 
-Hard mode selector (apply exactly):
+## Non-negotiable Rules
 
-1. If user request contains task id and does not mention inbox/analytics/file -> Mode 3.
-2. If user request contains task id and explicitly mentions inbox/analytics/file -> Mode 1.
-3. If user request has no task id and analytics file exists -> Mode 2.
-4. Otherwise request missing inputs.
+1. Use only one of the three modes above.
+2. For task-based requests, search analytics relevance in strict order:
+   - full task id in file name
+   - numeric part in file name
+   - full task id in file text
+   - numeric part in file text
+3. If task-id match is not found and request contains feature title/context, allow fallback context match:
+   - normalize text to lowercase; ignore brackets and punctuation
+   - use 3-5 key tokens from request context (after task id)
+   - consider analytics relevant if at least 2 tokens match file name or file content
+4. If multiple analytics files match, choose by priority:
+   - full id match before numeric-only
+   - task-id match before context fallback match
+   - newest modified file inside same priority
+5. Use only evidence relevant to request/task id.
+6. Do not invent details when evidence is missing.
+7. Checklist content must be in Russian.
+8. Checklist bullets must be noun phrases (no imperative verbs).
+9. Create or update only `docs/QA/[feature_name]/CHECKLIST.md`.
+10. Include only evidence-backed sections and bullets.
+11. Do not include code internals (function names or low-level implementation details) in checklist bullets.
+12. Before generation, check `docs/Speciality/`:
+    - only one `.md` is allowed there: `SPECIALITY.md`
+    - if `SPECIALITY.md` exists, use relevant facts from it
 
-Important:
-- Presence of files in `docs/QA/__workspace_inbox__/` alone must not switch task requests to Mode 1.
-- Example: `напиши чек-лист для задачи Diadoc1c-4935` is Mode 3.
-- Example: `напиши чек-лист для задачи Diadoc1c-4935, используй файл из inbox` is Mode 1.
+## Scope Limits (for weak model)
 
-### Step 1. Detect available inputs
+- Analytics files: max 1 relevant file.
+- Commits: default max 2 commits.
+- Adaptive escalation: allow up to 3 commits only if evidence is insufficient after 2 commits.
+- Files per commit: max 2 relevant files.
+- Final checklist size: 8-12 bullets.
+- Sections: 3-5 sections only.
 
-1. Parse user request and extract task id if present.
+Evidence is insufficient when at least one is true:
+- fewer than 5 specific facts extracted,
+- facts cover only one checklist category.
+
+## Workflow
+
+### Step 1. Detect Inputs
+
+1. Extract task id (if present).
 2. Check analytics files in `docs/QA/__workspace_inbox__/`.
-3. Check `docs/Speciality/`:
-   - if folder does not exist, continue without speciality data;
-   - if folder exists and contains `.md` files other than `SPECIALITY.md`, STOP with message: "Нарушено правило единого файла особенностей: в docs/Speciality должен быть только SPECIALITY.md.";
-   - if `docs/Speciality/SPECIALITY.md` exists, read it and extract candidate speciality facts.
-4. Deduplicate speciality facts before checklist generation (same meaning with different wording should be treated as one fact).
-5. If task id exists, mark analytics as relevant ONLY when at least one rule is true:
-   - analytics file name contains task id or its numeric part;
-   - analytics text mentions task id;
-   - user explicitly asks to use analytics/inbox file.
-   IF NO RULES ARE TRUE, ANALYTICS IS NOT RELEVANT FOR THIS TASK.
-6. Select mode according to hard mode selector above.
+3. Resolve analytics relevance:
+   - first by task-id match rules,
+   - then by context-title fallback only if task-id match is absent.
+4. Print preflight trace before continuing:
+   - `Inbox scan: <N> files; task-id match: <file|none>; context match: <file|none>; selected mode: <Mode 1|Mode 2|Mode 3>`
+5. Check `docs/Speciality/` single-file rule.
+6. Select mode using deterministic selector.
 
-### Step 2. Collect evidence
+### Step 2. Collect Evidence
 
-If task id exists (Mode 1 or Mode 3), commit search is mandatory.
+- **Mode 1**: analytics is primary; commits enrich if available.
+- **Mode 2**: analytics is primary.
+- **Mode 3**: commits are primary.
 
-Recommended commit search sequence:
+For task-based requests, commit search order:
 
 ```bash
 git log --all --grep="<task_id>" --pretty=format:"%H|%s|%an|%ad" --date=short
@@ -97,133 +114,52 @@ git log --all --grep="<task_id_lowercase>" --pretty=format:"%H|%s|%an|%ad" --dat
 git log --all --grep="<task_numeric_part>" --pretty=format:"%H|%s|%an|%ad" --date=short
 ```
 
-Notes:
-- For requests like `Diadoc1c-4935`, include exact search for `Diadoc1c-4935`.
-- If exact match returns results, use them as primary evidence.
-- If multiple variants return results, deduplicate by commit hash.
+Start commit search only after preflight trace is produced.
 
-If commits were found:
-- collect changed files via `git show <hash> --name-only --pretty=format:""`
-- pick 2-3 most relevant files (e.g. .bsl, .feature, .xml with logic)
-- MUST use `git show <hash> -- <file_path>` to read actual code changes for these files
-- identify specific functional changes: new UI elements, modified conditions, added fields, changed validation rules
-- MUST find at least 3 specific technical or functional facts to avoid generic items
+If commits are found:
+1. Deduplicate by commit hash.
+2. Analyze up to limit (default 2, adaptive max 3).
+3. For each commit, inspect changed files and read up to 2 relevant files.
+4. Extract concrete functional facts (UI changes, conditions, fields, validations, flows).
 
-If commits were NOT found and task id was provided:
-- MUST check if any RELEVANT analytics exists (per Step 1.3).
-- IF NO RELEVANT ANALYTICS: STOP IMMEDIATELY. Output: "Данные для задачи <id> не найдены (нет коммитов и релевантной аналитики). Генерация невозможна."
-- DO NOT use unrelated files from docs/QA/__workspace_inbox__/.
-- continue with analytics only if it was marked as relevant in Step 1.
+If task id exists and commits are not found:
+- if relevant analytics exists -> continue with analytics evidence.
+- if relevant analytics does not exist -> stop with fixed error message.
 
+### Step 3. Generate Checklist
 
-If analytics exists:
-- read analytics file from `docs/QA/__workspace_inbox__/`
-- extract key scenarios, conditions, and constraints
+Use `templates/CHECKLIST.md` as baseline format.
 
-If `docs/Speciality/SPECIALITY.md` exists:
-- extract reusable feature/interface/implementation specifics
-- mark speciality facts as relevant when they match task id, feature name, or request context
-- use relevant speciality facts as additional evidence for checklist bullets
-
-### Step 3. Branch logic by mode
-
-Mode 1:
-- use both sources (commits + analytics)
-- analytics defines business intent, commits refine implementation impact
-- if commits are not found, stop and ask user to verify task id or explicitly confirm analytics file
-
-Mode 2:
-- use analytics as primary source
-- optionally inspect related code by keywords from analytics
-
-Mode 3:
-- use commit evidence as primary source
-- if no commits found, ask user to verify task id or explicitly request analytics-based generation
-
-### Step 4. Build checklist structure
-
-Use template from `templates/CHECKLIST.md` as baseline.
-
-Checklist must include:
-1. Feature name and short description
-2. Numbered categories with bullet checks
-3. Concise, practical checks for manual QA
-
-Recommended categories (adapt to evidence):
+Recommended sections (include only when evidence supports):
 - Основной функционал
 - Граничные случаи и валидация
 - Негативные сценарии
 - UI/UX
 - Интеграции и зависимости
-- Дополнительные проверки
 
-Include only categories relevant to task evidence.
-Do not add "Нефункциональные проверки" unless non-functional requirements are explicitly present in commits/analytics.
-Include relevant facts from `docs/Speciality/SPECIALITY.md` in existing categories when they match context.
+Do not add non-functional checks unless evidence explicitly requires them.
 
-Category inclusion rules:
-- Include section only if at least 2 checklist bullets in that section can be directly justified by source evidence.
-- If evidence is missing, omit the section entirely.
-- Before saving, remove any section that contains mostly generic checks not tied to task data.
+### Step 4. Save Result
 
-### Step 5. Apply phrasing rules
+1. Determine `feature_name` (human-readable, Russian if possible).
+2. Save to `docs/QA/[feature_name]/CHECKLIST.md`.
+3. Return file path.
 
-Every checklist bullet must be a noun phrase.
+## Fixed Error Messages
 
-Good examples:
-- Создание документа из входящего ЭД
-- Наличие кнопки "Подписать"
-- Сообщение об ошибке при отсутствии прав
-- Обработка пустых значений поля
+1. Missing inputs:
+   - `Недостаточно данных: укажите task id или analytics-файл из docs/QA/__workspace_inbox__/.`
 
-Bad examples:
-- Проверить создание документа
-- Убедиться, что кнопка есть
-- Протестировать обработку ошибок
+2. No evidence for task id:
+   - `Данные для задачи <id> не найдены (нет коммитов и релевантной аналитики). Генерация невозможна.`
 
-### Step 6. Save result
+3. Invalid Speciality folder:
+   - `Нарушено правило единого файла особенностей: в docs/Speciality должен быть только SPECIALITY.md.`
 
-1. Determine feature folder name (Russian human-readable name when possible).
-2. Create/update `docs/QA/[feature_name]/CHECKLIST.md`.
-3. Return generated file path.
+## Quality Gate (before save)
 
-## Error Handling
-
-- No task id and no analytics: ask user to provide one of them.
-- Task id provided, commits not found, analytics absent: ask to verify task id or provide analytics.
-- Git command failure: report git access problem briefly.
-- Feature name cannot be derived: ask user for folder name suggestion.
-- `docs/Speciality/` has extra `.md` files: stop with fixed message about single-file rule.
-
-## Checklist Quality Gate
-
-Before finalizing, validate:
-
-1. All checks are tied to evidence from commits/analytics.
-2. No imperative verbs in checklist items.
-3. No obvious duplication.
-4. Wording is short and actionable.
-5. Content is in Russian.
-6. Every section has evidence-backed bullets; unsupported sections removed.
-7. Duplicate speciality facts were merged before final checklist generation.
-
-## Example Mode Behavior
-
-### Example A: task with commits
-
-User: `Напиши чек-лист для задачи Diadoc1c-4935`
-
-Expected behavior:
-1. Find commits by `Diadoc1c-4935`.
-2. Analyze commit messages and changed files.
-3. Infer fix/feature essence.
-4. Generate focused checklist in `docs/QA/[feature_name]/CHECKLIST.md`.
-
-### Example B: task not found
-
-User: `Напиши чек-лист для задачи Diadoc1c-999999`
-
-Expected behavior:
-1. Search commits.
-2. If nothing found and no analytics file is available, request additional input.
-3. Do not generate generic checklist.
+1. Every checklist bullet is directly evidence-backed.
+2. No imperative bullet wording.
+3. No duplicates by meaning.
+4. Checklist text is fully in Russian.
+5. Remove sections without strong evidence.
