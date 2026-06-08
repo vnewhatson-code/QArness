@@ -1,0 +1,18 @@
+{
+  "name": "qarness",
+  "version": "1.0.0",
+  "description": "AI-инструмент автоматизации QA работы",
+  "type": "module",
+  "scripts": {
+    "installer": "bun install.ts",
+    "build:cli": "bun build --compile src/cli/index.ts --outfile qarness",
+    "test": "bun test tests/"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.9.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "dockerode": "^4.0.6"
+  }
+}
