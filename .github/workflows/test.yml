@@ -28,4 +28,11 @@ jobs:
       - name: Verify TypeScript compiles
         run: bun build --no-bundle install.ts
       - name: Validate install.ps1 syntax
-        run: powershell -NoProfile -Command "& { $t = $null; $e = $null; [System.Management.Automation.Language.Parser]::ParseFile('.\install.ps1', [ref]$t, [ref]$e); if ($e.Count) { $e | ForEach-Object { Write-Error $_ }; exit 1 } }"
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile('.\install.ps1', [ref]$tokens, [ref]$errors)
+          if ($errors.Count) {
+            $errors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
