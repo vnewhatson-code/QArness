@@ -1,8 +1,7 @@
 import { existsSync } from "node:fs"
 import { mkdir, readFile, writeFile, rm } from "node:fs/promises"
-import { homedir } from "node:os"
 import { join, dirname } from "node:path"
-import { copyDir, copyFile, listItems, commandExists, xdgConfig, REPO_ROOT } from "./utils"
+import { copyDir, copyFile, listItems, commandExists, xdgConfig, getHomeDir, REPO_ROOT } from "./utils"
 
 export type SourceMapping = {
   from: string
@@ -99,14 +98,14 @@ export const HOSTS: HostConfig[] = [
   {
     id: "claude",
     name: "Claude Code",
-    detect: () => existsSync(join(homedir(), ".claude")),
-    targetDir: () => join(homedir(), ".claude"),
+    detect: () => existsSync(join(getHomeDir(), ".claude")),
+    targetDir: () => join(getHomeDir(), ".claude"),
     sources: {
       skills: { from: "skills" },
     },
     postInstall: async (_targetDir) => {
       // Claude Code reads MCP servers from ~/.claude.json (NOT settings.json)
-      const configPath = join(homedir(), ".claude.json")
+      const configPath = join(getHomeDir(), ".claude.json")
       let config: Record<string, unknown> = {}
       if (existsSync(configPath)) {
         try {
@@ -126,7 +125,7 @@ export const HOSTS: HostConfig[] = [
       await writeFile(configPath, JSON.stringify(config, null, 2) + "\n", "utf8")
     },
     postUninstall: async (_targetDir) => {
-      const configPath = join(homedir(), ".claude.json")
+      const configPath = join(getHomeDir(), ".claude.json")
       if (!existsSync(configPath)) return
       try {
         const config = JSON.parse(await readFile(configPath, "utf8"))
