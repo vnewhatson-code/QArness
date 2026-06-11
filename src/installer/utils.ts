@@ -15,16 +15,16 @@ export const xdgConfig = () => process.env.XDG_CONFIG_HOME || join(getHomeDir(),
 export const manifestPath = () => join(getHomeDir(), ".qarness", "manifest.json")
 
 export const commandExists = (cmd: string): boolean => {
-  try {
-    if (process.platform === "win32") {
-      const result = Bun.spawnSync(["where", cmd], { stdout: "pipe", stderr: "pipe" })
-      return result.exitCode === 0
+  const isWin = process.platform === "win32"
+  const paths = (process.env.PATH || "").split(isWin ? ";" : ":")
+  const exts = isWin ? (process.env.PATHEXT || ".exe;.cmd;.bat;.com").split(";") : [""]
+
+  for (const dir of paths) {
+    for (const ext of exts) {
+      if (existsSync(join(dir, cmd + ext))) return true
     }
-    const result = Bun.spawnSync(["which", cmd], { stdout: "pipe", stderr: "pipe" })
-    return result.exitCode === 0
-  } catch {
-    return false
   }
+  return false
 }
 
 export const copyDir = async (src: string, dest: string): Promise<void> => {
