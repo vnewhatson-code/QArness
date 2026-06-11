@@ -41,9 +41,9 @@ function Clone-QArness {
   if (Test-Path (Join-Path $InstallDir ".git")) {
     Write-Host "Обновление QArness..."
     Push-Location $InstallDir
-    git fetch --quiet origin $Ref 2>$null
+    git fetch --quiet origin $Ref
     if ($LASTEXITCODE -eq 0) {
-      git reset --quiet --hard "origin/$Ref" 2>$null
+      git reset --quiet --hard "origin/$Ref"
     }
     Pop-Location
   }
@@ -52,7 +52,7 @@ function Clone-QArness {
     if (Test-Path $InstallDir) {
       Remove-Item -Recurse -Force $InstallDir -ErrorAction SilentlyContinue
     }
-    git clone --quiet --depth 1 --branch $Ref $RepoUrl $InstallDir 2>$null
+    git clone --quiet --depth 1 --branch $Ref $RepoUrl $InstallDir
     if ($LASTEXITCODE -ne 0) {
       throw "Ошибка клонирования QArness"
     }
@@ -81,5 +81,5 @@ if (-not (Get-Command bun -ErrorAction SilentlyContinue)) {
 }
 
 # Install deps and run installer
-bun install --silent 2>$null
+bun install --silent
 bun run install.ts @args
