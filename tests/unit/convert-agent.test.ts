@@ -69,6 +69,19 @@ Body`
     expect(result).toContain("# Test Agent")
   })
 
+  it("quotes description containing colon-space pattern", () => {
+    const input = `---
+description: Uses three modes: (1) task, (2) analytics, (3) both
+tools:
+  read: true
+  bash: true
+---
+Body`
+    const result = convertAgentToPiFormat(input, "multi-mode")
+    expect(result).not.toBeNull()
+    expect(result).toContain('description: "Uses three modes: (1) task, (2) analytics, (3) both"')
+  })
+
   it("escapes values with special YAML characters", () => {
     const input = `---
 description: "Agent with: special chars {and} [stuff]"

@@ -5,7 +5,7 @@ function buildYamlFrontmatter(data: Record<string, string | boolean | undefined>
     if (typeof value === "boolean") {
       lines.push(`${key}: ${value}`)
     } else if (typeof value === "string") {
-      if (/^[:\{\}\[\]#&\*\?\|<>!%@`]/.test(value) || /\n/.test(value)) {
+      if (/^[:\{\}\[\]#&\*\?\|<>!%@`]/.test(value) || /: /.test(value) || /\n/.test(value)) {
         lines.push(`${key}: "${value.replace(/"/g, '\\"')}"`)
       } else {
         lines.push(`${key}: ${value}`)
