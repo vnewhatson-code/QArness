@@ -1,6 +1,6 @@
 ---
 name: checklist-generator
-description: Generates QA checklists in docs/QA using three modes: (1) task + relevant analytics, (2) analytics only, (3) task only. For task-based requests, inbox lookup by task id is mandatory before mode selection.
+description: "Generates QA checklists in docs/QA using three modes: (1) task + relevant analytics, (2) analytics only, (3) task only. For task-based requests, inbox lookup by task id is mandatory before mode selection."
 ---
 
 # Checklist Generator (Lite)
