@@ -1,10 +1,16 @@
 const fs = require('fs');
 const path = require('path');
 
+// Определяем корневой путь: --path <dir> или текущая директория
+const rootArgIndex = process.argv.indexOf('--path');
+const rootPath = (rootArgIndex !== -1 && process.argv[rootArgIndex + 1])
+    ? path.resolve(process.argv[rootArgIndex + 1])
+    : process.cwd();
+
 // Путь к формам 1С
-const formsPath = 'src/KonturSverka/Forms';
+const formsPath = path.join(rootPath, 'src/KonturSverka/Forms');
 // Путь к документации
-const docsPath = 'docs/forms';
+const docsPath = path.join(rootPath, 'docs/forms');
 
 // Получаем список всех форм из xml файлов в директории Forms
 const formNames = [];
