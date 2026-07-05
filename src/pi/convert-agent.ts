@@ -55,6 +55,6 @@ export function convertAgentToPiFormat(
     inheritSkills: false,
   }
 
-  const yaml = stringifyYaml(piFrontmatter)
+  const yaml = stringifyYaml(piFrontmatter, { lineWidth: 0 })
   return `---\n${yaml}---\n${body}`
 }
