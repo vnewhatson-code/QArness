@@ -69,4 +69,13 @@ Body`
     const result = convertAgentToPiFormat(input, "bad-yaml")
     expect(result).toBeNull()
   })
+
+  it("handles CRLF (Windows) line endings", () => {
+    const input = "---\r\ndescription: Test agent\r\nmode: subagent\r\ntools:\r\n  read: true\r\n  write: true\r\n  bash: true\r\n---\r\n\r\n# Test Agent"
+    const result = convertAgentToPiFormat(input, "test-agent")
+    expect(result).not.toBeNull()
+    expect(result).toContain("name: test-agent")
+    expect(result).toContain("tools: read, write, bash")
+    expect(result).toContain("# Test Agent")
+  })
 })

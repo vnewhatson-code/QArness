@@ -20,8 +20,9 @@ export function convertAgentToPiFormat(
   content: string,
   defaultName: string,
 ): string | null {
-  // Parse frontmatter
-  const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/)
+  // Normalize CRLF to LF, then parse frontmatter
+  const normalized = content.replace(/\r\n/g, "\n")
+  const match = normalized.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/)
   if (!match) return null
 
   const rawYaml = match[1]
