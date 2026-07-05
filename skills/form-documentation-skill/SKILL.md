@@ -18,7 +18,7 @@ Use this skill when you need to generate documentation for forms that lack docum
 ## Commands
 To run the documentation check:
 ```
-node tools/checkFormsDocumentation.js
+node checkFormsDocumentation.js
 ```
 
 To document a specific form using the form-documenter subagent:
@@ -27,6 +27,6 @@ document {{formName}} using subagent "form-documenter"
 ```
 
 ## Example workflow
-1. Run documentation check: `node tools/checkFormsDocumentation.js`
+1. Run documentation check: `node checkFormsDocumentation.js`
 2. For each form without documentation, call the form-documenter subagent
 3. The subagent will generate markdown documentation for the form
