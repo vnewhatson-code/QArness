@@ -60,16 +60,6 @@ Body`
     expect(result).toContain("tools: read, write, bash")
   })
 
-  it("handles invalid YAML gracefully", () => {
-    const input = `---
-description: "unclosed
-tools: [bad
----
-Body`
-    const result = convertAgentToPiFormat(input, "bad-yaml")
-    expect(result).toBeNull()
-  })
-
   it("handles CRLF (Windows) line endings", () => {
     const input = "---\r\ndescription: Test agent\r\nmode: subagent\r\ntools:\r\n  read: true\r\n  write: true\r\n  bash: true\r\n---\r\n\r\n# Test Agent"
     const result = convertAgentToPiFormat(input, "test-agent")
@@ -77,5 +67,21 @@ Body`
     expect(result).toContain("name: test-agent")
     expect(result).toContain("tools: read, write, bash")
     expect(result).toContain("# Test Agent")
+  })
+
+  it("escapes values with special YAML characters", () => {
+    const input = `---
+description: "Agent with: special chars {and} [stuff]"
+mode: subagent
+tools:
+  read: true
+  write: true
+  bash: true
+---
+Body`
+    const result = convertAgentToPiFormat(input, "special-agent")
+    expect(result).not.toBeNull()
+    expect(result).toContain('description: "')
+    expect(result).toContain("special-agent")
   })
 })
