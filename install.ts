@@ -1,6 +1,8 @@
 #!/usr/bin/env bun
 import * as p from "@clack/prompts"
-import { VERSION, REPO_ROOT, manifestPath } from "./src/installer/utils"
+import { existsSync } from "node:fs"
+import { join } from "node:path"
+import { VERSION, REPO_ROOT, manifestPath, getHomeDir } from "./src/installer/utils"
 import { HOSTS, installHost, uninstallHost } from "./src/installer/hosts"
 import { FEATURES } from "./src/installer/features"
 import { readManifest, writeManifest, removeManifest, type InstallManifest } from "./src/installer/manifest"
@@ -12,14 +14,14 @@ Usage:
   bun install.ts              # Interactive TUI installer
   bun install.ts --yes        # Install all detected hosts
   bun install.ts --uninstall  # Remove everything
-  bun install.ts --hosts opencode,claude --features xmind-mcp
+  bun install.ts --hosts opencode,claude,pi --features xmind-mcp
   bun install.ts --yes --json # AI agent JSON output
 
 Options:
   --yes, -y          Auto-install all detected hosts and features
   --json, -j         Structured JSON output (implies --yes)
   --uninstall        Remove all installed files
-  --hosts <list>     Comma-separated: opencode,claude
+  --hosts <list>     Comma-separated: opencode,claude,pi
   --features <list>  Comma-separated: xmind-mcp
   --help, -h         Show this help
 `
@@ -156,6 +158,16 @@ const main = async () => {
     s.start(`Установка в ${host.name}...`)
     try {
       const files = await installHost(host)
+      // For pi host, add converted agent files to manifest
+      if (hostId === "pi") {
+        const { readdirSync } = await import("node:fs")
+        const agentsDir = join(getHomeDir(), ".pi", "agent", "agents")
+        if (existsSync(agentsDir)) {
+          for (const f of readdirSync(agentsDir)) {
+            if (f.endsWith(".md")) files.push(`agents/${f}`)
+          }
+        }
+      }
       manifest.hosts[hostId] = { targetDir: host.targetDir(), files }
       successfulHostIds.push(hostId)
       s.stop(`${host.name}: ${files.length} элементов установлено`)

@@ -20,8 +20,14 @@ describe("Hosts", () => {
       expect(typeof claude.detect()).toBe("boolean")
     })
 
-    it("has exactly 2 configured hosts", () => {
-      expect(HOSTS.length).toBe(2)
+    it("Pi detect checks ~/.pi/agent or commandExists(pi)", () => {
+      const pi = HOSTS.find((h) => h.id === "pi")!
+      expect(pi).toBeDefined()
+      expect(typeof pi.detect()).toBe("boolean")
+    })
+
+    it("has exactly 3 configured hosts", () => {
+      expect(HOSTS.length).toBe(3)
     })
 
     it("all hosts have required fields", () => {

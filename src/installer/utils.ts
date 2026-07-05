@@ -11,6 +11,7 @@ export const VERSION = existsSync(join(REPO_ROOT, ".version"))
 export const getHomeDir = (): string =>
   (process.platform === "win32" ? process.env.USERPROFILE : process.env.HOME) || homedir()
 
+export const piDir = () => join(getHomeDir(), ".pi", "agent")
 export const xdgConfig = () => process.env.XDG_CONFIG_HOME || join(getHomeDir(), ".config")
 export const manifestPath = () => join(getHomeDir(), ".qarness", "manifest.json")
 

@@ -1,7 +1,8 @@
 import { existsSync } from "node:fs"
-import { mkdir, readFile, writeFile, rm } from "node:fs/promises"
-import { join, dirname } from "node:path"
-import { copyDir, copyFile, listItems, commandExists, xdgConfig, getHomeDir, REPO_ROOT } from "./utils"
+import { mkdir, readFile, writeFile, readdir, rm } from "node:fs/promises"
+import { join } from "node:path"
+import { copyDir, copyFile, listItems, commandExists, xdgConfig, getHomeDir, piDir, REPO_ROOT } from "./utils"
+import { convertAgentToPiFormat } from "../pi/convert-agent"
 
 export type SourceMapping = {
   from: string
@@ -139,6 +140,61 @@ export const HOSTS: HostConfig[] = [
       } catch {
         // skip
       }
+    },
+  },
+  {
+    id: "pi",
+    name: "Pi Coding Agent",
+    detect: () => {
+      if (existsSync(piDir())) return true
+      return commandExists("pi")
+    },
+    targetDir: () => piDir(),
+    sources: {
+      skills: { from: "skills" },
+    },
+    postInstall: async (targetDir) => {
+      // 1. Create QArness extension
+      const extDir = join(targetDir, "extensions", "qarness")
+      await mkdir(extDir, { recursive: true })
+      const extContent = await readFile(join(REPO_ROOT, "src", "pi", "extension.ts"), "utf8")
+      await writeFile(join(extDir, "index.ts"), extContent, "utf8")
+
+      // 2. Install pi-subagents (only if not already installed)
+      const piPkgDir = join(targetDir, "packages", "pi-subagents")
+      if (!existsSync(piPkgDir)) {
+        const result = Bun.spawnSync(["pi", "install", "npm:pi-subagents"], {
+          stdout: "pipe",
+          stderr: "pipe",
+        })
+        if (result.exitCode !== 0) {
+          throw new Error(
+            `pi-subagents install failed: ${result.stderr.toString().trim()}`,
+          )
+        }
+      }
+
+      // 3. Convert and install agents to pi-subagents format
+      const agentsSrcDir = join(REPO_ROOT, "agents")
+      const agentsDestDir = join(getHomeDir(), ".pi", "agent", "agents")
+      if (existsSync(agentsSrcDir)) {
+        await mkdir(agentsDestDir, { recursive: true })
+        const agentFiles = await readdir(agentsSrcDir)
+        for (const file of agentFiles) {
+          if (!file.endsWith(".md")) continue
+          const srcPath = join(agentsSrcDir, file)
+          const content = await readFile(srcPath, "utf8")
+          const converted = convertAgentToPiFormat(content, file.replace(/\.md$/, ""))
+          if (converted) {
+            await writeFile(join(agentsDestDir, file), converted, "utf8")
+          }
+        }
+      }
+    },
+    postUninstall: async (targetDir) => {
+      // Remove QArness extension
+      const extDir = join(targetDir, "extensions", "qarness")
+      await rm(extDir, { recursive: true, force: true })
     },
   },
 ]
